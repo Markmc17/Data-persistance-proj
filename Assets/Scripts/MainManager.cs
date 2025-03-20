@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Configuration;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -11,11 +13,15 @@ public class MainManager : MonoBehaviour
     public Rigidbody Ball;
 
     public Text ScoreText;
+    public Text HighScoreText;
     public GameObject GameOverText;
     
     private bool m_Started = false;
     private int m_Points;
-    
+    private string m_playerName;
+    private int m_HighScorePoints;
+    private string m_HighScoreName;
+
     private bool m_GameOver = false;
 
     
@@ -34,6 +40,26 @@ public class MainManager : MonoBehaviour
                 var brick = Instantiate(BrickPrefab, position, Quaternion.identity);
                 brick.PointValue = pointCountArray[i];
                 brick.onDestroyed.AddListener(AddPoint);
+            }
+        }
+    }
+
+    private void Awake()
+    {
+        if (DataManger.Instance != null)
+        {
+            m_playerName = DataManger.Instance.PlayerName;
+            if (DataManger.Instance.HighScoreName != null && DataManger.Instance.HighScoreName != "")
+            {
+                m_HighScoreName = DataManger.Instance.HighScoreName;
+                m_HighScorePoints = DataManger.Instance.HighScore;
+                HighScoreText.text = $"Current Highscore: {m_HighScoreName} with {m_HighScorePoints} Points";
+
+            }
+            else
+            {
+                HighScoreText.text = "No highscore yet";
+                m_HighScorePoints = 0;
             }
         }
     }
@@ -65,12 +91,31 @@ public class MainManager : MonoBehaviour
     void AddPoint(int point)
     {
         m_Points += point;
-        ScoreText.text = $"Score : {m_Points}";
+        ScoreText.text = $"Score from {m_playerName}: {m_Points}";
     }
 
     public void GameOver()
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+
+        if (m_Points > m_HighScorePoints) 
+        {
+            m_HighScoreName = m_playerName;
+            m_HighScorePoints = m_Points;
+            DataManger.Instance.HighScoreName = m_playerName;
+            DataManger.Instance.HighScore = m_Points;
+            DataManger.Instance.SaveHighscore(m_Points);
+        }
+        HighScoreText.text = $"Current Highscore: {m_HighScoreName} with {m_HighScorePoints} Points"; ;
+    }
+
+    public void Exit()
+    {
+#if UNITY_EDITOR
+        EditorApplication.ExitPlaymode();
+#else   
+        Application.Quit(); // original code to quit Unity player
+#endif
     }
 }
